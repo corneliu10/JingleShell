@@ -1,5 +1,9 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+
 
 /*
     Function Declarations for builtin shell commands:
@@ -8,17 +12,26 @@
 int jshell_cd(char **args);
 int jshell_print(char **args);
 int jshell_exit(char **args);
+int jshell_history(char **args);
+int jshell_clear_history(char **args);
+int jshell_search_history(char **args);
 
 /*
   List of builtin commands
  */
 
 char *builtin_str[] = {
+    "history",
+    "clear_history",
+    "search_history",
     "cd",
     "print",
-    "exit"};
+    "exit" };
 
 int (*builtin_func[])(char **) = {
+    &jshell_history,
+    &jshell_clear_history,
+    &jshell_search_history,
     &jshell_cd,
     &jshell_print,
     &jshell_exit};
@@ -31,6 +44,43 @@ int jshell_num_builtins()
 /*
   Builtin function implementations.
 */
+
+int jshell_history(char **args)
+{
+	/* get the state of your history list (offset, length, size) */
+    HISTORY_STATE *myhist = history_get_history_state();
+    int length = myhist->length;
+
+    /* retrieve the history list */
+    HIST_ENTRY **mylist = history_list();
+
+    if (args[1] != NULL && length > atoi(args[1]))
+        length = atoi(args[1]);
+
+    printf("\n");
+    for (int i = myhist->length - length; i < myhist->length; i++)  /* output history list */
+        printf(" %s  %s\n", mylist[i]->line, mylist[i]->timestamp);
+
+    free (myhist);  /* free HISTORY_STATE */
+
+    return 1;
+}
+
+int jshell_search_history(char **args)
+{
+    // still have to be implemented
+    // if(history_set_pos(0))
+    //     printf("am ajuns %d",history_search(args[1], 1));
+    printf("Is not implemented yet, wait for a new update");
+
+    return 1;
+}
+
+int jshell_clear_history(char **args)
+{
+    clear_history();
+    return 1;
+}
 
 int jshell_cd(char **args)
 {
@@ -70,11 +120,11 @@ int jshell_print(char **args)
                 printf("* ");
             else
                 printf(" ");
-        
+
         printf("\n");
     }
     printf("\n");
-    
+
     printf("*** MERRY CHRISTMAS ***\n\n");
 
     printf("\n");

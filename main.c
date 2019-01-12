@@ -107,6 +107,7 @@ void runLoop()
     {
         printf(":> ");
         line = readLine();
+    	add_history(line);
         args = splitLine(line);
         status = executeCommand(args);
 
@@ -117,6 +118,8 @@ void runLoop()
 
 int main(int argc, char **argv)
 {
+
+	using_history();
     runLoop();
 
     return EXIT_SUCCESS;
