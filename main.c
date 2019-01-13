@@ -3,10 +3,14 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+
 #include "builtin.c"
 
 #define TOK_BUF_SIZE 64
 #define TOK_DELIM " \t\n\r\a"
+
+pid_t childPid;
 
 char **splitLine(char *line)
 {
@@ -44,29 +48,121 @@ char **splitLine(char *line)
     return tokens;
 }
 
+typedef struct command {
+	int argc;
+	char* args[100];
+} Command;
+
+void printCommands(Command *cmds) {
+	for (int i = 0; i < 100; ++i) {
+		if (cmds[i].argc == 0) break;
+
+		for (int j = 0; j < cmds[i].argc; ++j)
+			printf("%s ", cmds[i].args[j]);
+
+		printf("\n");
+	}
+} 
+
+Command* checkPipeLines(char **args, int *pipe_count) {
+	Command *cmds = (Command *)malloc(100 * sizeof(Command));
+	for (int i = 0; i < 100; ++i)
+		for (int j = 0; j < 100; j++)
+			cmds[i].args[j] = (char *)malloc(100 * sizeof(char));
+	for (int i = 0; i < 100; ++i)
+		cmds[i].argc = 0;
+
+	for (int i = 0; args[i]; ++i) {
+		if (strcmp(args[i], "|") == 0) {
+			(*pipe_count)++;
+			continue;
+		}
+		
+		memcpy(cmds[*pipe_count].args[cmds[*pipe_count].argc++], args[i], sizeof(args[i]));
+	}
+
+	return cmds;
+	//printCommands(cmds);
+}
+
 int launchCommand(char **args)
 {
-    int status;
-    pid_t pid, wpid;
+    int size = 1000,i,j;
+    int pipe_count = 0;
+    int fd[100][2],cid1,cid2,length,status;
 
-    pid = fork();
-    if (pid == 0)
+    //char* string[100][100];// = {{"pwd", NULL} ,{"ls", "-la", NULL}, {"wc", "-l", NULL}}; 
+
+    Command *commands = checkPipeLines(args, &pipe_count);
+
+    if(pipe_count)
     {
-        // Child process
-        if (execvp(args[0], args) == -1)
+        for(i = 0;i < pipe_count;i++)
         {
-            perror("error on creating child process!");
+            pipe(fd[i]);
         }
-        exit(EXIT_FAILURE);
-    }
-    else if (pid < 0)
-    {
-        perror("error on forking!");
+
+        for(i = 0;i <= pipe_count;i++)
+        {
+            cid1 = fork();
+            if(!cid1)
+            {
+
+                if(i!=0)
+                {
+                    dup2(fd[i-1][0],0);
+                }
+
+
+                if(i!=pipe_count)
+                {
+                    dup2(fd[i][1],1);
+                }
+
+
+                for(j = 0;j < pipe_count;j++)
+                {   
+                    close(fd[j][0]);
+                    close(fd[j][1]);
+                }
+
+                execlp(commands[i].args[0], commands[i].args[0], NULL);
+                //execvp(commands[i].args[0], (char *const char[])commands[i].args);
+                exit(0);
+            }
+        }
+        for(i = 0;i < pipe_count;i++)
+        {
+            close(fd[i][0]);
+            close(fd[i][1]);
+        }
+        waitpid(cid1,&status,0);
     }
     else
     {
-        // Parent process
-        wpid = waitpid(pid, &status, WUNTRACED);
+        int status;
+	    pid_t pid, wpid;
+
+	    pid = fork();
+	    if (pid == 0)
+	    {
+	        // Child process
+	        if (execvp(args[0], args) == -1)
+	        {
+	            perror("error on creating child process!");
+	        }
+	        exit(EXIT_FAILURE);
+	    }
+	    else if (pid < 0)
+	    {
+	        perror("error on forking!");
+	    }
+	    else
+	    {
+	        // Parent process
+	        childPid = pid;
+	        wpid = waitpid(pid, &status, WUNTRACED);
+	    }
     }
 
     return 1;
@@ -88,6 +184,15 @@ int executeCommand(char **args)
     return launchCommand(args);
 }
 
+void sighandler(int sig_num) {
+	//printf("Current Pid: %d Child Pid: %d\n", getpid(), childPid);
+	signal(SIGTSTP, sighandler);
+	if (childPid) {
+		kill(childPid, SIGSTOP);
+		printf("Stopped process with pid: %d\n", childPid);
+	}
+}
+
 void runLoop()
 {
     char *line;
@@ -95,6 +200,7 @@ void runLoop()
 
     int status;
 
+    signal(SIGTSTP, sighandler);
     do
     {
         line = readline(":> ");

@@ -3,7 +3,7 @@
 #include <unistd.h>
 #include <readline/readline.h>
 #include <readline/history.h>
-
+#include <signal.h>
 
 /*
     Function Declarations for builtin shell commands:
@@ -11,8 +11,10 @@
 
 int jshell_cd(char **args);
 int jshell_print(char **args);
-int jshell_exit(char **args);
 int jshell_history(char **args);
+int jshell_fg(char **args);
+int jshell_help(char **args);
+int jshell_exit(char **args);
 
 /*
   List of builtin commands
@@ -22,12 +24,16 @@ char *builtin_str[] = {
     "history",
     "cd",
     "print",
+    "fg",
+    "help",
     "exit" };
 
 int (*builtin_func[])(char **) = {
     &jshell_history,
     &jshell_cd,
     &jshell_print,
+    &jshell_fg,
+    &jshell_help,
     &jshell_exit};
 
 int jshell_num_builtins()
@@ -84,6 +90,7 @@ int jshell_print(char **args)
 {
     int a = 10, b;
 
+    while(1);
     for (b = 1; b <= a; b++)
     {
         for (int x = a - 1; x >= b; x--)
@@ -113,6 +120,27 @@ int jshell_print(char **args)
     printf("*** MERRY CHRISTMAS ***\n\n");
 
     printf("\n");
+    return 1;
+}
+
+int jshell_fg(char **args)
+{
+    //printf("%s %s", args[0], args[1]);
+    kill(getpid(), SIGCONT);
+}
+
+int jshell_help(char **args)
+{
+    int i;
+    printf("Jingle Shell\n");
+    printf("The following are built in:\n");
+
+    for (i = 0; i < jshell_num_builtins(); i++) {
+        printf("  %s\n", builtin_str[i]);
+    }
+
+    printf("The pipeline is working!\n");
+    printf("Use the man command for information on other programs.\n");
     return 1;
 }
 
