@@ -13,8 +13,6 @@ int jshell_cd(char **args);
 int jshell_print(char **args);
 int jshell_exit(char **args);
 int jshell_history(char **args);
-int jshell_clear_history(char **args);
-int jshell_search_history(char **args);
 
 /*
   List of builtin commands
@@ -22,16 +20,12 @@ int jshell_search_history(char **args);
 
 char *builtin_str[] = {
     "history",
-    "clear_history",
-    "search_history",
     "cd",
     "print",
     "exit" };
 
 int (*builtin_func[])(char **) = {
     &jshell_history,
-    &jshell_clear_history,
-    &jshell_search_history,
     &jshell_cd,
     &jshell_print,
     &jshell_exit};
@@ -54,31 +48,22 @@ int jshell_history(char **args)
     /* retrieve the history list */
     HIST_ENTRY **mylist = history_list();
 
-    if (args[1] != NULL && length > atoi(args[1]))
+    if(args[1] != NULL && strcmp(args[1],"-c") == 0)
+    {
+        clear_history();
+        return 1;
+    }
+
+    if (args[1] != NULL && length > atoi(args[1])) 
         length = atoi(args[1]);
 
     printf("\n");
     for (int i = myhist->length - length; i < myhist->length; i++)  /* output history list */
-        printf(" %s  %s\n", mylist[i]->line, mylist[i]->timestamp);
+        printf("%d. %s  %s\n", i+1, mylist[i]->line, mylist[i]->timestamp);
+    printf("\n");
 
     free (myhist);  /* free HISTORY_STATE */
-
-    return 1;
-}
-
-int jshell_search_history(char **args)
-{
-    // still have to be implemented
-    // if(history_set_pos(0))
-    //     printf("am ajuns %d",history_search(args[1], 1));
-    printf("Is not implemented yet, wait for a new update");
-
-    return 1;
-}
-
-int jshell_clear_history(char **args)
-{
-    clear_history();
+	
     return 1;
 }
 
@@ -120,11 +105,11 @@ int jshell_print(char **args)
                 printf("* ");
             else
                 printf(" ");
-
+        
         printf("\n");
     }
     printf("\n");
-
+    
     printf("*** MERRY CHRISTMAS ***\n\n");
 
     printf("\n");

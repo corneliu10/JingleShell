@@ -8,14 +8,6 @@
 #define TOK_BUF_SIZE 64
 #define TOK_DELIM " \t\n\r\a"
 
-char *readLine()
-{
-    char *line = NULL;
-    size_t bufsize = 0;
-    getline(&line, &bufsize, stdin);
-    return line;
-}
-
 char **splitLine(char *line)
 {
     int bufsize = TOK_BUF_SIZE, position = 0;
@@ -105,9 +97,10 @@ void runLoop()
 
     do
     {
-        printf(":> ");
-        line = readLine();
-    	add_history(line);
+        line = readline(":> ");
+        if(strlen(line) > 0)
+            add_history(line);
+
         args = splitLine(line);
         status = executeCommand(args);
 
@@ -124,3 +117,4 @@ int main(int argc, char **argv)
 
     return EXIT_SUCCESS;
 }
+
