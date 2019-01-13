@@ -5,4 +5,5 @@ A custom shell
 
 git clone https://github.com/corneliu10/JingleShell.git
 
-gcc main.c -o main
+gcc main.c -o main -lrealine
+
