@@ -12,6 +12,39 @@
 
 pid_t childPid;
 
+int launchCommand(char **args);
+
+int logic_operator(char **args, int cnt_oper)
+{
+    int bufsize = TOK_BUF_SIZE, position = 0; 
+    char **tokens = malloc(bufsize * sizeof(char *));
+    
+     if (!tokens)
+    {
+        fprintf(stderr, "jingleShell: allocation error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    for(int i = 0; args[i]; i++)
+    {
+        if(strcmp(args[i],"&&") != 0 && strcmp(args[i],"||") != 0 && strcmp(args[i],";") != 0)
+        {
+            tokens[position] = args[i];
+            position++;
+        }
+        else
+        {
+            launchCommand(tokens);
+            for (int i = 0 ; i <= position; i++)
+                tokens[i] = NULL;
+            position = 0;
+        }
+    }
+
+    return launchCommand(tokens);
+}
+
+
 char **splitLine(char *line)
 {
     int bufsize = TOK_BUF_SIZE, position = 0;
@@ -110,13 +143,13 @@ int launchCommand(char **args)
 
                 if(i!=0)
                 {
-                    dup2(fd[i-1][0],0);
+                    dup2(fd[i-1][0], 0); // copy the input file descriptor
                 }
 
 
                 if(i!=pipe_count)
                 {
-                    dup2(fd[i][1],1);
+                    dup2(fd[i][1], 1); // copy the output file descriptor
                 }
 
 
@@ -131,11 +164,13 @@ int launchCommand(char **args)
                 exit(0);
             }
         }
+
         for(i = 0;i < pipe_count;i++)
         {
             close(fd[i][0]);
             close(fd[i][1]);
         }
+        
         waitpid(cid1,&status,0);
     }
     else
@@ -171,9 +206,20 @@ int launchCommand(char **args)
 int executeCommand(char **args)
 {
     int i;
+    int cnt_oper = 0;
 
     if (args[0] == NULL) {
         //printf("No command given!\n");
+        return 1;
+    }
+
+    for(i = 0; args[i]; i++)
+        if(strcmp(args[i], "&&") == 0 || strcmp(args[i], "||") == 0 || strcmp(args[i], ";") == 0)
+            cnt_oper++;
+
+    if (cnt_oper > 0)
+    {
+        logic_operator(args, cnt_oper);
         return 1;
     }
 
@@ -217,7 +263,6 @@ void runLoop()
 
 int main(int argc, char **argv)
 {
-
 	using_history();
     runLoop();
 

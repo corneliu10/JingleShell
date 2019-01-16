@@ -90,7 +90,6 @@ int jshell_print(char **args)
 {
     int a = 10, b;
 
-    while(1);
     for (b = 1; b <= a; b++)
     {
         for (int x = a - 1; x >= b; x--)
@@ -127,6 +126,7 @@ int jshell_fg(char **args)
 {
     //printf("%s %s", args[0], args[1]);
     kill(getpid(), SIGCONT);
+    return 1;
 }
 
 int jshell_help(char **args)
